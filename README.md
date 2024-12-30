@@ -1,4 +1,4 @@
-# Web Performance Analyzer v1.3.0
+# Web Performance Analyzer v1.5.0
 
 A modern web application for analyzing web performance metrics and calculating Lighthouse scores.
 
@@ -14,12 +14,39 @@ A modern web application for analyzing web performance metrics and calculating L
 - Progress Tracking
 - Responsive Design
 - PDF Report Export
+- Docker Deployment
 
-## What's New in v1.3.0 [PDF Download]
-- Added PDF export functionality for analysis reports
-- Professional PDF layout with header and metadata
-- High-quality image capture of analysis results
-- One-click download with progress indicator
+## What's New in v1.5.0 [Docker Support]
+- Added Docker support for containerized deployment
+- Multi-stage build optimization
+- Nginx configuration with performance optimizations
+- Gzip compression and caching
+- Security headers configuration
+
+## Docker Support
+
+### Prerequisites
+- Docker
+- Docker Compose
+
+### Running with Docker
+1. Build the image:
+   ```bash
+   docker compose build
+   ```
+
+2. Start the container:
+   ```bash
+   docker compose up -d
+   ```
+
+3. Access the application:
+   - Open http://localhost:80 in your browser
+
+4. Stop the container:
+   ```bash
+   docker compose down
+   ```
 
 ## Analysis Categories
 
@@ -70,6 +97,8 @@ A modern web application for analyzing web performance metrics and calculating L
 - Lucide React Icons
 - jsPDF
 - html2canvas
+- Docker
+- Nginx
 
 ## Getting Started
 
