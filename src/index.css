@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Hide DeepL inline trigger */
+deepl-inline-trigger {
+  display: none !important;
+}
