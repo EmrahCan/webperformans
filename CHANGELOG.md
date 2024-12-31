@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.7.1] - 2024-12-31
+
+### Changed
+- Admin panel iyileştirmeleri
+  - Grafik görünümleri optimize edildi
+  - Gerçek zamanlı veri güncellemesi iyileştirildi
+  - İstatistik hesaplamaları güncellendi
+
 ## [1.7.0] - 2024-12-31
 
 ### Added
