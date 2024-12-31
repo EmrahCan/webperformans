@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.2] - 2024-12-31
+- Sektör karşılaştırması ve trend analizi kaldırıldı
+- Performans ve kullanıcı deneyimi iyileştirmeleri
+- Sadece A/B test önerileri ve maliyet-fayda analizi bırakıldı
+
 ## [1.6.1] - 2024-12-31
 
 ### Changed

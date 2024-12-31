@@ -19,6 +19,7 @@ import { getDeviceMetrics } from './utils/deviceUtils';
 import { analyzeDiagnostics } from './utils/diagnosticsUtils';
 import { initialSteps, generateAnalysisComments, generateAnalysisMetrics } from './utils/analysisUtils';
 import { analyzeSSL } from './utils/sslUtils';
+import { generateABTests, analyzeCostBenefit } from './utils/advancedAnalysis';
 import type { AnalysisStep, AnalysisComment, AnalysisMetrics, DeviceType, SSLAnalysisType } from './types/analysis';
 import type { LoadingStep, DiagnosticReport } from './types/diagnostics';
 
@@ -37,6 +38,9 @@ function App() {
     tbt: number;
   } | null>(null);
   const [sslAnalysis, setSSLAnalysis] = useState<SSLAnalysisType | null>(null);
+  const [abTests, setAbTests] = useState<any[]>([]);
+  const [costBenefit, setCostBenefit] = useState<any[]>([]);
+  const [language, setLanguage] = useState<'tr' | 'en'>('tr');
 
   const deviceMetrics = getDeviceMetrics(deviceType);
 
@@ -127,6 +131,15 @@ function App() {
         step.id === '6' ? { ...step, status: 'in-progress' } : step
       ));
       setComments(generateAnalysisComments());
+
+      // A/B Test önerileri
+      const abTestSuggestions = generateABTests(newMetrics);
+      setAbTests(abTestSuggestions);
+
+      // Maliyet-fayda analizi
+      const costBenefitAnalysis = analyzeCostBenefit(newMetrics);
+      setCostBenefit(costBenefitAnalysis);
+
       await new Promise(resolve => setTimeout(resolve, 1000));
       setAnalysisSteps(steps => steps.map(step => 
         step.id === '6' ? { ...step, status: 'completed' } : step
@@ -144,8 +157,22 @@ function App() {
     }
   };
 
+  // Dil değiştirme fonksiyonu
+  const toggleLanguage = () => {
+    setLanguage(prev => prev === 'tr' ? 'en' : 'tr');
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
+    <div className="min-h-screen bg-gray-100">
+      {/* Dil değiştirme butonu */}
+      <div className="absolute top-4 right-4">
+        <button
+          onClick={toggleLanguage}
+          className="px-4 py-2 bg-white rounded-lg shadow hover:bg-gray-50"
+        >
+          {language === 'tr' ? 'EN' : 'TR'}
+        </button>
+      </div>
       <Header />
       <main className="container mx-auto px-4 py-8">
         <div className="space-y-8">
@@ -197,6 +224,65 @@ function App() {
                   )}
                 </div>
               </div>
+
+              {/* A/B Test Önerileri */}
+              {abTests.length > 0 && (
+                <div className="mt-8">
+                  <h2 className="text-xl font-bold mb-4">A/B Test Önerileri</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {abTests.map((test, index) => (
+                      <div key={index} className="p-4 bg-white rounded-lg shadow">
+                        <h3 className="font-bold">{test.name}</h3>
+                        <p className="text-gray-600">{test.description}</p>
+                        <div className="mt-2">
+                          <span className="text-blue-600">Beklenen Etki: {test.impact}</span>
+                          <br />
+                          <span className="text-green-600">Kazanç: {test.estimatedGain}</span>
+                          <br />
+                          <span className={`text-${test.effort === 'low' ? 'green' : test.effort === 'medium' ? 'yellow' : 'red'}-600`}>
+                            Zorluk: {test.effort}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Maliyet-Fayda Analizi */}
+              {costBenefit.length > 0 && (
+                <div className="mt-8">
+                  <h2 className="text-xl font-bold mb-4">Maliyet-Fayda Analizi</h2>
+                  <div className="grid grid-cols-1 gap-4">
+                    {costBenefit.map((analysis, index) => (
+                      <div key={index} className="p-4 bg-white rounded-lg shadow">
+                        <h3 className="font-bold">{analysis.improvement}</h3>
+                        <div className="grid grid-cols-2 gap-4 mt-2">
+                          <div>
+                            <h4 className="font-semibold">Maliyet</h4>
+                            <p>Geliştirme: {analysis.cost.development}₺</p>
+                            <p>Bakım: {analysis.cost.maintenance}₺</p>
+                            <p className="font-bold">Toplam: {analysis.cost.total}₺</p>
+                          </div>
+                          <div>
+                            <h4 className="font-semibold">Faydalar</h4>
+                            <p>{analysis.benefit.performanceGain}</p>
+                            <p>{analysis.benefit.userExperienceGain}</p>
+                            <p>{analysis.benefit.estimatedRevenueIncrease}</p>
+                            <p className="font-bold text-green-600">ROI: {analysis.benefit.roi}</p>
+                          </div>
+                        </div>
+                        <div className="mt-2">
+                          <span className={`inline-block px-2 py-1 rounded text-white bg-${analysis.priority === 'high' ? 'red' : analysis.priority === 'medium' ? 'yellow' : 'green'}-600`}>
+                            {analysis.priority} öncelik
+                          </span>
+                          <span className="ml-2">{analysis.timeToImplement}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
