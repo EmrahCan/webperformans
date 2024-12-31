@@ -234,6 +234,43 @@ const Dashboard: React.FC = () => {
 
   const { visitorData, pageData, deviceData } = getChartData();
 
+  const resetStats = () => {
+    try {
+      localStorage.removeItem('visitorStats');
+      localStorage.removeItem('searchLog');
+      localStorage.removeItem('totalVisitors');
+      localStorage.removeItem('totalSearches');
+      setStats({
+        daily: {
+          totalVisitors: 0,
+          uniqueVisitors: 0,
+          averageTimeSpent: '0:00',
+          popularPages: [],
+          analyzedSites: []
+        },
+        monthly: {
+          totalVisitors: 0,
+          uniqueVisitors: 0,
+          averageTimeSpent: '0:00',
+          popularPages: [],
+          analyzedSites: []
+        },
+        yearly: {
+          totalVisitors: 0,
+          uniqueVisitors: 0,
+          averageTimeSpent: '0:00',
+          popularPages: [],
+          analyzedSites: []
+        }
+      });
+      setSearchLog([]);
+      alert('İstatistikler başarıyla sıfırlandı!');
+    } catch (error) {
+      console.error('Error resetting stats:', error);
+      alert('İstatistikleri sıfırlarken bir hata oluştu.');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100">
       <nav className="bg-white shadow-sm">
@@ -475,6 +512,15 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
         </div>
+      </div>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+        <button
+          onClick={resetStats}
+          className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
+        >
+          İstatistikleri Sıfırla
+        </button>
       </div>
     </div>
   );
