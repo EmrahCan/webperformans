@@ -1,160 +1,115 @@
 import axios from 'axios';
 import type { SSLAnalysis, SSLCertificate } from '../types/ssl';
-import { Agent } from 'https';
-
-export async function checkSSL(url: string): Promise<{ valid: boolean; issuer: string; validFrom: string; validTo: string }> {
-  try {
-    const response = await axios.get(url);
-    const cert = response.request.socket.getPeerCertificate();
-    return {
-      valid: cert.valid_from && cert.valid_to ? true : false,
-      issuer: cert.issuer ? cert.issuer.O : 'Unknown',
-      validFrom: cert.valid_from || 'Unknown',
-      validTo: cert.valid_to || 'Unknown',
-    };
-  } catch (error) {
-    console.error('SSL check failed:', error);
-    return {
-      valid: false,
-      issuer: 'Unknown',
-      validFrom: 'Unknown',
-      validTo: 'Unknown',
-    };
-  }
-}
 
 export async function analyzeSSL(url: string): Promise<SSLAnalysis> {
   try {
-    // HTTPS agent oluştur
-    const agent = new Agent({
-      rejectUnauthorized: false // Self-signed sertifikaları da kontrol edebilmek için
-    });
+    // SSL Labs API'sini kullan
+    const apiUrl = `https://api.ssllabs.com/api/v3/analyze?host=${encodeURIComponent(url)}&all=done`;
+    const response = await axios.get(apiUrl);
+    const data = response.data;
 
-    // URL'yi HTTPS protokolüne çevir
-    if (!url.startsWith('http')) {
-      url = 'https://' + url;
-    }
-
-    // SSL sertifikasını kontrol et
-    const response = await axios.get(url, {
-      httpsAgent: agent,
-      timeout: 5000
-    });
-
-    const socket = response.request.res.socket;
-    if (!socket) {
-      throw new Error('Could not get socket information');
-    }
-
-    const cert = socket.getPeerCertificate(true);
-    const protocol = socket.getProtocol();
-
-    // Sertifika bilgilerini hazırla
-    const validFrom = new Date(cert.valid_from);
-    const validTo = new Date(cert.valid_to);
-    const now = new Date();
-    const daysUntilExpiry = Math.floor((validTo.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-
-    const certificate: SSLCertificate = {
-      issuer: cert.issuer?.O || cert.issuer?.CN || 'Unknown',
-      validFrom: validFrom.toISOString(),
-      validTo: validTo.toISOString(),
-      protocol: protocol || 'Unknown',
-      keyExchange: cert.ephemeralKeyInfo?.name || 'Unknown',
-      cipher: socket.getCipher().name || 'Unknown',
-      isValid: now >= validFrom && now <= validTo,
-      daysUntilExpiry
+    // Varsayılan değerler
+    let certificate: SSLCertificate = {
+      issuer: 'Unknown',
+      validFrom: new Date().toISOString(),
+      validTo: new Date().toISOString(),
+      protocol: 'Unknown',
+      keyExchange: 'Unknown',
+      cipher: 'Unknown',
+      isValid: false,
+      daysUntilExpiry: 0
     };
 
-    // Security Headers kontrolü
-    const headers = response.headers;
-    const securityHeaders = {
-      'Strict-Transport-Security': {
-        present: !!headers['strict-transport-security'],
-        value: headers['strict-transport-security'],
-        recommendation: !headers['strict-transport-security'] ? 
-          'Add HSTS header to enforce HTTPS' : undefined
-      },
-      'Content-Security-Policy': {
-        present: !!headers['content-security-policy'],
-        value: headers['content-security-policy'],
-        recommendation: !headers['content-security-policy'] ?
-          'Implement CSP to prevent XSS attacks' : undefined
-      },
-      'X-Frame-Options': {
-        present: !!headers['x-frame-options'],
-        value: headers['x-frame-options'],
-        recommendation: !headers['x-frame-options'] ?
-          'Add X-Frame-Options header to prevent clickjacking' : undefined
-      },
-      'X-Content-Type-Options': {
-        present: !!headers['x-content-type-options'],
-        value: headers['x-content-type-options'],
-        recommendation: !headers['x-content-type-options'] ?
-          'Add X-Content-Type-Options header to prevent MIME-type sniffing' : undefined
-      },
-      'Referrer-Policy': {
-        present: !!headers['referrer-policy'],
-        value: headers['referrer-policy'],
-        recommendation: !headers['referrer-policy'] ?
-          'Add Referrer-Policy header to control information leakage' : undefined
-      }
-    };
-
+    let securityScore = 0;
     const warnings: string[] = [];
     const recommendations: string[] = [];
 
-    // Sertifika uyarıları
-    if (!certificate.isValid) {
-      warnings.push('SSL certificate is not valid');
-    }
-    if (daysUntilExpiry < 0) {
-      warnings.push('SSL certificate has expired');
-    } else if (daysUntilExpiry < 30) {
-      warnings.push('SSL certificate will expire soon');
-      recommendations.push('Renew SSL certificate before expiration');
+    if (data.status === 'READY' && data.endpoints && data.endpoints.length > 0) {
+      const endpoint = data.endpoints[0];
+      
+      // Sertifika bilgilerini al
+      if (endpoint.details && endpoint.details.cert) {
+        const cert = endpoint.details.cert;
+        const validFrom = new Date(cert.notBefore * 1000);
+        const validTo = new Date(cert.notAfter * 1000);
+        const now = new Date();
+        const daysUntilExpiry = Math.floor((validTo.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+        certificate = {
+          issuer: cert.issuerSubject || 'Unknown',
+          validFrom: validFrom.toISOString(),
+          validTo: validTo.toISOString(),
+          protocol: endpoint.details.protocols?.[0]?.name || 'Unknown',
+          keyExchange: cert.keyAlg || 'Unknown',
+          cipher: endpoint.details.protocols?.[0]?.cipher || 'Unknown',
+          isValid: now >= validFrom && now <= validTo,
+          daysUntilExpiry
+        };
+
+        // Sertifika uyarıları
+        if (!certificate.isValid) {
+          warnings.push('SSL certificate is not valid');
+        }
+        if (daysUntilExpiry < 0) {
+          warnings.push('SSL certificate has expired');
+        } else if (daysUntilExpiry < 30) {
+          warnings.push('SSL certificate will expire soon');
+          recommendations.push('Renew SSL certificate before expiration');
+        }
+
+        // Protokol uyarıları
+        if (endpoint.details.protocols.some(p => p.version === '1.1')) {
+          warnings.push('Using outdated TLS v1.1 protocol');
+          recommendations.push('Upgrade to TLS v1.2 or higher');
+        }
+
+        // Güvenlik skoru hesaplama
+        securityScore = endpoint.grade ? 
+          {'A+': 100, 'A': 90, 'A-': 85, 'B': 75, 'C': 65, 'D': 55, 'E': 45, 'F': 35}[endpoint.grade] || 0 
+          : 0;
+      }
     }
 
-    // Protokol uyarıları
-    if (protocol && protocol.includes('TLSv1.1')) {
-      warnings.push('Using outdated TLS v1.1 protocol');
-      recommendations.push('Upgrade to TLS v1.2 or higher');
-    }
+    // Security Headers kontrolü
+    const headers = {
+      'Strict-Transport-Security': {
+        present: false,
+        recommendation: 'Add HSTS header to enforce HTTPS'
+      },
+      'Content-Security-Policy': {
+        present: false,
+        recommendation: 'Implement CSP to prevent XSS attacks'
+      },
+      'X-Frame-Options': {
+        present: false,
+        recommendation: 'Add X-Frame-Options header to prevent clickjacking'
+      },
+      'X-Content-Type-Options': {
+        present: false,
+        recommendation: 'Add X-Content-Type-Options header to prevent MIME-type sniffing'
+      },
+      'Referrer-Policy': {
+        present: false,
+        recommendation: 'Add Referrer-Policy header to control information leakage'
+      }
+    };
 
-    // Güvenlik başlıkları önerileri
-    Object.entries(securityHeaders).forEach(([header, info]) => {
-      if (!info.present && info.recommendation) {
-        recommendations.push(info.recommendation);
+    // Her eksik header için skor düşür
+    Object.values(headers).forEach(header => {
+      if (!header.present) {
+        securityScore = Math.max(0, securityScore - 5);
+        if (header.recommendation) {
+          recommendations.push(header.recommendation);
+        }
       }
     });
-
-    // Güvenlik skoru hesaplama
-    let securityScore = 100;
-
-    // Sertifika durumuna göre puan
-    if (!certificate.isValid) securityScore -= 40;
-    if (daysUntilExpiry < 0) securityScore -= 40;
-    else if (daysUntilExpiry < 30) securityScore -= 20;
-    else if (daysUntilExpiry < 60) securityScore -= 10;
-
-    // Protokol versiyonuna göre puan
-    if (protocol && protocol.includes('TLSv1.1')) securityScore -= 20;
-    else if (protocol && protocol.includes('TLSv1.2')) securityScore -= 5;
-
-    // Güvenlik başlıkları için puan
-    Object.values(securityHeaders).forEach(header => {
-      if (!header.present) securityScore -= 10;
-    });
-
-    // Minimum 0 puan
-    securityScore = Math.max(0, securityScore);
 
     return {
       certificate,
       securityScore,
       warnings,
       recommendations,
-      securityHeaders
+      securityHeaders: headers
     };
   } catch (error) {
     console.error('SSL analysis error:', error);
