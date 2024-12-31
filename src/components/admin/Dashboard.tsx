@@ -26,27 +26,18 @@ ChartJS.register(
   ArcElement
 );
 
-interface VisitorStats {
+interface StatsData {
   daily: {
-    totalVisitors: number;
-    uniqueVisitors: number;
-    averageTimeSpent: string;
-    popularPages: Array<{ page: string; visits: number }>;
-    analyzedSites: Array<{ url: string; count: number; lastAnalyzed: string }>;
+    totalSearches: number;
+    analyzedSites: Array<{ url: string; score: number }>;
   };
   monthly: {
-    totalVisitors: number;
-    uniqueVisitors: number;
-    averageTimeSpent: string;
-    popularPages: Array<{ page: string; visits: number }>;
-    analyzedSites: Array<{ url: string; count: number; lastAnalyzed: string }>;
+    totalSearches: number;
+    analyzedSites: Array<{ url: string; score: number }>;
   };
   yearly: {
-    totalVisitors: number;
-    uniqueVisitors: number;
-    averageTimeSpent: string;
-    popularPages: Array<{ page: string; visits: number }>;
-    analyzedSites: Array<{ url: string; count: number; lastAnalyzed: string }>;
+    totalSearches: number;
+    analyzedSites: Array<{ url: string; score: number }>;
   };
 }
 
@@ -58,26 +49,17 @@ interface SearchLogEntry {
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'daily' | 'monthly' | 'yearly'>('daily');
-  const [stats, setStats] = useState<VisitorStats>({
+  const [stats, setStats] = useState<StatsData>({
     daily: {
-      totalVisitors: 0,
-      uniqueVisitors: 0,
-      averageTimeSpent: '0:00',
-      popularPages: [],
+      totalSearches: 0,
       analyzedSites: []
     },
     monthly: {
-      totalVisitors: 0,
-      uniqueVisitors: 0,
-      averageTimeSpent: '0:00',
-      popularPages: [],
+      totalSearches: 0,
       analyzedSites: []
     },
     yearly: {
-      totalVisitors: 0,
-      uniqueVisitors: 0,
-      averageTimeSpent: '0:00',
-      popularPages: [],
+      totalSearches: 0,
       analyzedSites: []
     }
   });
@@ -90,56 +72,60 @@ const Dashboard: React.FC = () => {
       return;
     }
 
-    // Ziyaretçi istatistiklerini localStorage'dan al
-    const visitorStats = JSON.parse(localStorage.getItem('visitorStats') || '{}');
-    
-    setStats({
-      daily: {
-        totalVisitors: visitorStats.daily?.count || 0,
-        uniqueVisitors: Math.floor((visitorStats.daily?.count || 0) * 0.7), // Yaklaşık tekil ziyaretçi sayısı
-        averageTimeSpent: '2:30',
-        popularPages: [
-          { page: 'Ana Sayfa', visits: Math.floor((visitorStats.daily?.count || 0) * 0.5) },
-          { page: 'Hakkımızda', visits: Math.floor((visitorStats.daily?.count || 0) * 0.3) },
-          { page: 'İletişim', visits: Math.floor((visitorStats.daily?.count || 0) * 0.2) }
-        ],
-        analyzedSites: [
-          { url: 'example.com', count: 0, lastAnalyzed: '-' },
-          { url: 'test.com', count: 0, lastAnalyzed: '-' },
-          { url: 'demo.com', count: 0, lastAnalyzed: '-' }
-        ]
-      },
-      monthly: {
-        totalVisitors: visitorStats.monthly?.count || 0,
-        uniqueVisitors: Math.floor((visitorStats.monthly?.count || 0) * 0.7),
-        averageTimeSpent: '2:45',
-        popularPages: [
-          { page: 'Ana Sayfa', visits: Math.floor((visitorStats.monthly?.count || 0) * 0.5) },
-          { page: 'Hakkımızda', visits: Math.floor((visitorStats.monthly?.count || 0) * 0.3) },
-          { page: 'İletişim', visits: Math.floor((visitorStats.monthly?.count || 0) * 0.2) }
-        ],
-        analyzedSites: [
-          { url: 'example.com', count: 0, lastAnalyzed: '-' },
-          { url: 'test.com', count: 0, lastAnalyzed: '-' },
-          { url: 'demo.com', count: 0, lastAnalyzed: '-' }
-        ]
-      },
-      yearly: {
-        totalVisitors: visitorStats.yearly?.count || 0,
-        uniqueVisitors: Math.floor((visitorStats.yearly?.count || 0) * 0.7),
-        averageTimeSpent: '2:30',
-        popularPages: [
-          { page: 'Ana Sayfa', visits: Math.floor((visitorStats.yearly?.count || 0) * 0.5) },
-          { page: 'Hakkımızda', visits: Math.floor((visitorStats.yearly?.count || 0) * 0.3) },
-          { page: 'İletişim', visits: Math.floor((visitorStats.yearly?.count || 0) * 0.2) }
-        ],
-        analyzedSites: [
-          { url: 'example.com', count: 0, lastAnalyzed: '-' },
-          { url: 'test.com', count: 0, lastAnalyzed: '-' },
-          { url: 'demo.com', count: 0, lastAnalyzed: '-' }
-        ]
+    const loadStats = () => {
+      try {
+        const searchLog = JSON.parse(localStorage.getItem('searchLog') || '[]');
+        const now = new Date();
+        
+        // Günlük istatistikler
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const dailySearches = searchLog.filter((log: any) => 
+          new Date(log.timestamp) >= today
+        );
+
+        // Aylık istatistikler
+        const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const monthlySearches = searchLog.filter((log: any) => 
+          new Date(log.timestamp) >= firstDayOfMonth
+        );
+
+        // Yıllık istatistikler
+        const firstDayOfYear = new Date(now.getFullYear(), 0, 1);
+        const yearlySearches = searchLog.filter((log: any) => 
+          new Date(log.timestamp) >= firstDayOfYear
+        );
+
+        setStats({
+          daily: {
+            totalSearches: dailySearches.length,
+            analyzedSites: dailySearches.map((s: any) => ({ 
+              url: s.url, 
+              score: 0 
+            }))
+          },
+          monthly: {
+            totalSearches: monthlySearches.length,
+            analyzedSites: monthlySearches.map((s: any) => ({ 
+              url: s.url, 
+              score: 0 
+            }))
+          },
+          yearly: {
+            totalSearches: yearlySearches.length,
+            analyzedSites: yearlySearches.map((s: any) => ({ 
+              url: s.url, 
+              score: 0 
+            }))
+          }
+        });
+      } catch (error) {
+        console.error('Error loading stats:', error);
       }
-    });
+    };
+
+    loadStats();
+    const interval = setInterval(loadStats, 30000);
+    return () => clearInterval(interval);
   }, [navigate]);
 
   useEffect(() => {
@@ -171,30 +157,24 @@ const Dashboard: React.FC = () => {
 
   // Grafik verilerini hazırla
   const getChartData = () => {
-    const visitorData = {
+    const searchLogData = {
       labels: ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'],
       datasets: [
         {
-          label: 'Toplam Ziyaretçi',
-          data: Array(7).fill(activeStats.totalVisitors / 7).map(v => Math.floor(v)),
+          label: 'Toplam Arama',
+          data: Array(7).fill(activeStats.totalSearches / 7).map(v => Math.floor(v)),
           borderColor: 'rgb(75, 192, 192)',
           backgroundColor: 'rgba(75, 192, 192, 0.5)',
-        },
-        {
-          label: 'Tekil Ziyaretçi',
-          data: Array(7).fill(activeStats.uniqueVisitors / 7).map(v => Math.floor(v)),
-          borderColor: 'rgb(53, 162, 235)',
-          backgroundColor: 'rgba(53, 162, 235, 0.5)',
         },
       ],
     };
 
-    const pageData = {
-      labels: activeStats.popularPages.map(page => page.page),
+    const siteData = {
+      labels: activeStats.analyzedSites.map(site => site.url),
       datasets: [
         {
-          label: 'Sayfa Ziyaretleri',
-          data: activeStats.popularPages.map(page => page.visits),
+          label: 'Analiz Edilen Siteler',
+          data: activeStats.analyzedSites.map(site => site.score),
           backgroundColor: [
             'rgba(255, 99, 132, 0.5)',
             'rgba(54, 162, 235, 0.5)',
@@ -210,26 +190,7 @@ const Dashboard: React.FC = () => {
       ],
     };
 
-    const deviceData = {
-      labels: ['Masaüstü', 'Mobil', 'Tablet'],
-      datasets: [
-        {
-          data: [45, 35, 20],
-          backgroundColor: [
-            'rgba(255, 99, 132, 0.5)',
-            'rgba(54, 162, 235, 0.5)',
-            'rgba(255, 206, 86, 0.5)',
-          ],
-          borderColor: [
-            'rgba(255, 99, 132, 1)',
-            'rgba(54, 162, 235, 1)',
-            'rgba(255, 206, 86, 1)',
-          ],
-        },
-      ],
-    };
-
-    return { visitorData, pageData, deviceData };
+    return { searchLogData, siteData };
   };
 
   const chartOptions = {
@@ -241,34 +202,22 @@ const Dashboard: React.FC = () => {
     },
   };
 
-  const { visitorData, pageData, deviceData } = getChartData();
+  const { searchLogData, siteData } = getChartData();
 
   const resetStats = () => {
     try {
-      localStorage.removeItem('visitorStats');
       localStorage.removeItem('searchLog');
-      localStorage.removeItem('totalVisitors');
-      localStorage.removeItem('totalSearches');
       setStats({
         daily: {
-          totalVisitors: 0,
-          uniqueVisitors: 0,
-          averageTimeSpent: '0:00',
-          popularPages: [],
+          totalSearches: 0,
           analyzedSites: []
         },
         monthly: {
-          totalVisitors: 0,
-          uniqueVisitors: 0,
-          averageTimeSpent: '0:00',
-          popularPages: [],
+          totalSearches: 0,
           analyzedSites: []
         },
         yearly: {
-          totalVisitors: 0,
-          uniqueVisitors: 0,
-          averageTimeSpent: '0:00',
-          popularPages: [],
+          totalSearches: 0,
           analyzedSites: []
         }
       });
@@ -344,32 +293,10 @@ const Dashboard: React.FC = () => {
             <div className="bg-white overflow-hidden shadow rounded-lg">
               <div className="px-4 py-5 sm:p-6">
                 <dt className="text-sm font-medium text-gray-500 truncate">
-                  Toplam Ziyaretçi
+                  Toplam Arama
                 </dt>
                 <dd className="mt-1 text-3xl font-semibold text-gray-900">
-                  {activeStats.totalVisitors}
-                </dd>
-              </div>
-            </div>
-
-            <div className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="px-4 py-5 sm:p-6">
-                <dt className="text-sm font-medium text-gray-500 truncate">
-                  Tekil Ziyaretçi
-                </dt>
-                <dd className="mt-1 text-3xl font-semibold text-gray-900">
-                  {activeStats.uniqueVisitors}
-                </dd>
-              </div>
-            </div>
-
-            <div className="bg-white overflow-hidden shadow rounded-lg">
-              <div className="px-4 py-5 sm:p-6">
-                <dt className="text-sm font-medium text-gray-500 truncate">
-                  Ortalama Geçirilen Süre
-                </dt>
-                <dd className="mt-1 text-3xl font-semibold text-gray-900">
-                  {activeStats.averageTimeSpent}
+                  {activeStats.totalSearches}
                 </dd>
               </div>
             </div>
@@ -379,33 +306,7 @@ const Dashboard: React.FC = () => {
             <div className="bg-white shadow rounded-lg">
               <div className="px-4 py-5 sm:p-6">
                 <h3 className="text-lg leading-6 font-medium text-gray-900">
-                  En Çok Ziyaret Edilen Sayfalar
-                </h3>
-                <div className="mt-4">
-                  <ul className="divide-y divide-gray-200">
-                    {activeStats.popularPages.map((page, index) => (
-                      <li key={index} className="py-4">
-                        <div className="flex items-center justify-between">
-                          <div className="text-sm font-medium text-gray-900">
-                            {page.page}
-                          </div>
-                          <div className="text-sm text-gray-500">
-                            {page.visits} ziyaret
-                          </div>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-8">
-            <div className="bg-white shadow rounded-lg">
-              <div className="px-4 py-5 sm:p-6">
-                <h3 className="text-lg leading-6 font-medium text-gray-900">
-                  En Çok Analiz Edilen Siteler
+                  Analiz Edilen Siteler
                 </h3>
                 <div className="mt-4">
                   <div className="overflow-x-auto">
@@ -416,10 +317,7 @@ const Dashboard: React.FC = () => {
                             Site URL
                           </th>
                           <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Analiz Sayısı
-                          </th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Son Analiz
+                            Puan
                           </th>
                         </tr>
                       </thead>
@@ -430,10 +328,7 @@ const Dashboard: React.FC = () => {
                               {site.url}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {site.count}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {site.lastAnalyzed}
+                              {site.score}
                             </td>
                           </tr>
                         ))}
@@ -447,24 +342,16 @@ const Dashboard: React.FC = () => {
 
           {/* Grafikler */}
           <div className="mt-8 grid grid-cols-1 gap-8 md:grid-cols-2">
-            {/* Ziyaretçi Grafiği */}
+            {/* Arama Grafiği */}
             <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Ziyaretçi İstatistikleri</h3>
-              <Line options={chartOptions} data={visitorData} />
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Arama İstatistikleri</h3>
+              <Line options={chartOptions} data={searchLogData} />
             </div>
 
-            {/* Sayfa Ziyaretleri Grafiği */}
+            {/* Site Grafiği */}
             <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Sayfa Ziyaretleri</h3>
-              <Bar options={chartOptions} data={pageData} />
-            </div>
-
-            {/* Cihaz Dağılımı Grafiği */}
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">Cihaz Dağılımı</h3>
-              <div className="w-full max-w-md mx-auto">
-                <Pie data={deviceData} options={chartOptions} />
-              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4">Analiz Edilen Siteler</h3>
+              <Bar options={chartOptions} data={siteData} />
             </div>
           </div>
 
