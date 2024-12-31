@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.7.0] - 2024-12-31
+
+### Added
+- Admin panel eklendi
+  - Güvenli giriş sistemi
+  - Ziyaretçi istatistikleri görüntüleme
+  - Anlık arama takibi
+- İstatistik grafikleri eklendi
+  - Ziyaretçi istatistikleri (çizgi grafik)
+  - Sayfa ziyaretleri (sütun grafik)
+  - Cihaz dağılımı (pasta grafik)
+- Günlük/aylık/yıllık istatistik görüntüleme
+- Gerçek zamanlı ziyaretçi sayacı
+
 ## [1.6.2] - 2024-12-31
 - Sektör karşılaştırması ve trend analizi kaldırıldı
 - Performans ve kullanıcı deneyimi iyileştirmeleri
