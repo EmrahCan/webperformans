@@ -31,11 +31,11 @@ function App() {
   const [comments, setComments] = useState<AnalysisComment[]>([]);
   const [metrics, setMetrics] = useState<AnalysisMetrics | null>(null);
   const [diagnosticReport, setDiagnosticReport] = useState<DiagnosticReport | null>(null);
-  const [performanceMetrics, setPerformanceMetrics] = useState({
-    fcp: 0,
-    lcp: 0,
-    tbt: 0
-  });
+  const [performanceMetrics, setPerformanceMetrics] = useState<{
+    fcp: number;
+    lcp: number;
+    tbt: number;
+  } | null>(null);
   const [sslAnalysis, setSSLAnalysis] = useState<SSLAnalysisType | null>(null);
 
   const deviceMetrics = getDeviceMetrics(deviceType);
@@ -161,7 +161,10 @@ function App() {
             isAnalyzing={isAnalyzing}
           />
 
-          <LighthouseCalculator metrics={performanceMetrics} />
+          {/* Render LighthouseCalculator only when analysis is complete */}
+          {showResults && performanceMetrics && (
+            <LighthouseCalculator metrics={performanceMetrics} />
+          )}
 
           {isAnalyzing && (
             <AnalysisProgress 

@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.0] - 2024-12-31
+
+### Changed
+- LighthouseCalculator artık sadece analiz tamamlandıktan sonra görüntüleniyor
+- Performans metrikleri başlangıçta null olarak ayarlandı
+- Kullanıcı arayüzü iyileştirmeleri
+
 ## [1.2.0] - 2024-03-19
 
 ### Added

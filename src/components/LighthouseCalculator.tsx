@@ -9,20 +9,17 @@ interface LighthouseCalculatorProps {
 }
 
 export function LighthouseCalculator({ metrics }: LighthouseCalculatorProps) {
-  const [localMetrics, setLocalMetrics] = useState({
-    fcp: metrics?.fcp || 0,
-    lcp: metrics?.lcp || 0,
-    tbt: metrics?.tbt || 0
-  });
-  const [score, setScore] = useState<number>(0);
+  const [score, setScore] = useState<number | null>(null);
 
   useEffect(() => {
     if (metrics) {
-      setLocalMetrics(metrics);
+      calculateScore();
     }
   }, [metrics]);
 
   const calculateScore = () => {
+    if (!metrics) return;
+
     // Lighthouse scoring weights
     const weights = {
       fcp: 0.15,
@@ -31,9 +28,9 @@ export function LighthouseCalculator({ metrics }: LighthouseCalculatorProps) {
     };
 
     // Score calculations based on Lighthouse metrics
-    const fcpScore = calculateMetricScore(localMetrics.fcp, [2000, 4000]); // Good: 0-2s, Poor: >4s
-    const lcpScore = calculateMetricScore(localMetrics.lcp, [2500, 4500]); // Good: 0-2.5s, Poor: >4.5s
-    const tbtScore = calculateMetricScore(localMetrics.tbt, [300, 600]);   // Good: 0-300ms, Poor: >600ms
+    const fcpScore = calculateMetricScore(metrics.fcp, [2000, 4000]); // Good: 0-2s, Poor: >4s
+    const lcpScore = calculateMetricScore(metrics.lcp, [2500, 4500]); // Good: 0-2.5s, Poor: >4.5s
+    const tbtScore = calculateMetricScore(metrics.tbt, [300, 600]);   // Good: 0-300ms, Poor: >600ms
 
     // Calculate weighted average
     const totalScore = (
@@ -51,16 +48,9 @@ export function LighthouseCalculator({ metrics }: LighthouseCalculatorProps) {
     return (poor - value) / (poor - good);
   };
 
-  useEffect(() => {
-    calculateScore();
-  }, [localMetrics]);
-
-  const handleInputChange = (metric: keyof typeof localMetrics) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setLocalMetrics(prev => ({
-      ...prev,
-      [metric]: Number(e.target.value)
-    }));
-  };
+  if (!metrics || score === null) {
+    return null;
+  }
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-lg max-w-2xl mx-auto">
@@ -74,8 +64,7 @@ export function LighthouseCalculator({ metrics }: LighthouseCalculatorProps) {
           <div className="mt-1">
             <input
               type="number"
-              value={localMetrics.fcp}
-              onChange={handleInputChange('fcp')}
+              value={metrics.fcp}
               className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
               placeholder="Enter FCP in milliseconds"
             />
@@ -90,8 +79,7 @@ export function LighthouseCalculator({ metrics }: LighthouseCalculatorProps) {
           <div className="mt-1">
             <input
               type="number"
-              value={localMetrics.lcp}
-              onChange={handleInputChange('lcp')}
+              value={metrics.lcp}
               className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
               placeholder="Enter LCP in milliseconds"
             />
@@ -106,8 +94,7 @@ export function LighthouseCalculator({ metrics }: LighthouseCalculatorProps) {
           <div className="mt-1">
             <input
               type="number"
-              value={localMetrics.tbt}
-              onChange={handleInputChange('tbt')}
+              value={metrics.tbt}
               className="shadow-sm focus:ring-blue-500 focus:border-blue-500 block w-full sm:text-sm border-gray-300 rounded-md"
               placeholder="Enter TBT in milliseconds"
             />
