@@ -1,7 +1,7 @@
 {
   "name": "web-performance-analyzer",
   "private": true,
-  "version": "1.8.0",
+  "version": "1.8.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,10 +10,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@types/node": "^20.10.6",
+    "@types/node": "^20.17.10",
     "@types/react-router-dom": "^5.3.3",
     "autoprefixer": "^10.4.16",
-    "axios": "^1.6.5",
+    "axios": "^1.7.9",
     "chart.js": "^4.4.7",
     "html2canvas": "^1.4.1",
     "jspdf": "^2.5.1",
