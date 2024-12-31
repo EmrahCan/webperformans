@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.1] - 2024-12-31
+
+### Changed
+- Sayfa başlığı "WebVitality.pro" olarak güncellendi
+
 ## [1.6.0] - 2024-12-31
 
 ### Changed
