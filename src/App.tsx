@@ -22,7 +22,7 @@ import { analyzeSSL } from './utils/sslUtils';
 import { generateABTests, analyzeCostBenefit } from './utils/advancedAnalysis';
 import type { AnalysisStep, AnalysisComment, AnalysisMetrics, DeviceType, SSLAnalysisType } from './types/analysis';
 import type { LoadingStep, DiagnosticReport } from './types/diagnostics';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route } from 'react-router-dom';
 import Login from './components/admin/Login';
 import Dashboard from './components/admin/Dashboard';
 
