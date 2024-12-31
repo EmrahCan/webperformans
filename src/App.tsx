@@ -63,17 +63,20 @@ function App() {
     if (!url) return;
 
     // Arama kaydını localStorage'a ekle
-    const searchLog = JSON.parse(localStorage.getItem('searchLog') || '[]');
-    searchLog.unshift({
-      url: url,
-      timestamp: new Date().toISOString(),
-      device: deviceType
-    });
-    // Son 100 aramayı tut
-    if (searchLog.length > 100) {
-      searchLog.pop();
+    try {
+      const searchTime = new Date().toISOString();
+      const searchEntry = { url, timestamp: searchTime };
+      
+      const existingSearches = localStorage.getItem('searchLog') || '[]';
+      const searches = JSON.parse(existingSearches);
+      searches.unshift(searchEntry);
+      
+      // Son 100 aramayı tut
+      const recentSearches = searches.slice(0, 100);
+      localStorage.setItem('searchLog', JSON.stringify(recentSearches));
+    } catch (error) {
+      console.error('Error saving search log:', error);
     }
-    localStorage.setItem('searchLog', JSON.stringify(searchLog));
 
     try {
       e.preventDefault();

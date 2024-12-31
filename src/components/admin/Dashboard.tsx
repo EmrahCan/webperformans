@@ -53,7 +53,6 @@ interface VisitorStats {
 interface SearchLogEntry {
   url: string;
   timestamp: string;
-  device: string;
 }
 
 const Dashboard: React.FC = () => {
@@ -82,7 +81,7 @@ const Dashboard: React.FC = () => {
       analyzedSites: []
     }
   });
-  const [searchLog, setSearchLog] = useState<SearchLogEntry[]>([]);
+  const [searchLog, setSearchLog] = useState<Array<{ url: string; timestamp: string }>>([]);
 
   useEffect(() => {
     const isAuthenticated = localStorage.getItem('adminAuth') === 'true';
@@ -143,13 +142,23 @@ const Dashboard: React.FC = () => {
     });
   }, [navigate]);
 
-  // Anlık aramaları güncelle
   useEffect(() => {
-    const interval = setInterval(() => {
-      const log = JSON.parse(localStorage.getItem('searchLog') || '[]');
-      setSearchLog(log);
-    }, 1000); // Her saniye güncelle
+    const loadSearchLog = () => {
+      try {
+        const storedSearches = localStorage.getItem('searchLog');
+        if (storedSearches) {
+          const searches = JSON.parse(storedSearches);
+          setSearchLog(searches);
+        }
+      } catch (error) {
+        console.error('Error loading search log:', error);
+        setSearchLog([]);
+      }
+    };
 
+    loadSearchLog();
+    // Her 30 saniyede bir güncelle
+    const interval = setInterval(loadSearchLog, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -417,7 +426,7 @@ const Dashboard: React.FC = () => {
                       <tbody className="bg-white divide-y divide-gray-200">
                         {activeStats.analyzedSites.map((site, index) => (
                           <tr key={index}>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                               {site.url}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -460,55 +469,40 @@ const Dashboard: React.FC = () => {
           </div>
 
           {/* Anlık Aramalar */}
-          <div className="mt-8">
-            <div className="bg-white shadow rounded-lg">
-              <div className="px-4 py-5 sm:p-6">
-                <h3 className="text-lg leading-6 font-medium text-gray-900 flex justify-between items-center">
-                  <span>Anlık Aramalar</span>
-                  <span className="text-sm text-gray-500">Son güncelleme: {new Date().toLocaleTimeString()}</span>
-                </h3>
-                <div className="mt-4">
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Zaman
-                          </th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            URL
-                          </th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                            Cihaz
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {searchLog.map((entry, index) => (
-                          <tr key={index} className={index === 0 ? 'bg-green-50' : ''}>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {new Date(entry.timestamp).toLocaleString()}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                              {entry.url}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {entry.device}
-                            </td>
-                          </tr>
-                        ))}
-                        {searchLog.length === 0 && (
-                          <tr>
-                            <td colSpan={3} className="px-6 py-4 text-center text-sm text-gray-500">
-                              Henüz arama yapılmamış
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 className="text-xl font-semibold mb-4">Anlık Aramalar</h2>
+            <div className="overflow-x-auto">
+              <table className="min-w-full table-auto">
+                <thead>
+                  <tr className="bg-gray-50">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      URL
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Tarih/Saat
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {searchLog.map((search, index) => (
+                    <tr key={index}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {search.url}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {new Date(search.timestamp).toLocaleString('tr-TR')}
+                      </td>
+                    </tr>
+                  ))}
+                  {searchLog.length === 0 && (
+                    <tr>
+                      <td colSpan={2} className="px-6 py-4 text-center text-gray-500">
+                        Henüz arama kaydı bulunmuyor
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
